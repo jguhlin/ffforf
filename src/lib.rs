@@ -1,8 +1,4 @@
 #![feature(is_sorted)]
-
-#[macro_use]
-extern crate jetscii;
-
 ///! ORF finding
 /// 
 /// Algorithm:
@@ -10,6 +6,15 @@ extern crate jetscii;
 ///     Calculate distance between stop codons
 ///     If greater than MIN_ORF_LENGTH, translate intervening sequence
 
+use lazy_static::lazy_static;
+
+use jetscii::{SubstringConst, Substring};
+use pulp::Arch;
+
+
+lazy_static! {
+    static ref STOP_CODONS: [SubstringConst; 3] = [Substring::new("TAG"), Substring::new("TAA"), Substring::new("TGA")];
+}
 
 const CODON_MAPPING: [&[u8; 3]; 64] =  [
     // Make it sorted so we can use binary search
@@ -22,6 +27,7 @@ const CODON_MAPPING: [&[u8; 3]; 64] =  [
 // Map from codon to amino acid
 const AMINO_MAPPING: [u8; 64] = [
     // Mapping for a sorted codon array
+
     b'K', b'N', b'K', b'N', b'T', b'T', b'T', b'T', b'R', b'S', b'R', b'S', b'I', b'I', b'M', b'I',
     b'Q', b'H', b'Q', b'H', b'P', b'P', b'P', b'P', b'R', b'R', b'R', b'R', b'L', b'L', b'L', b'L',
     b'E', b'D', b'E', b'D', b'A', b'A', b'A', b'A', b'G', b'G', b'G', b'G', b'V', b'V', b'V', b'V',
@@ -51,6 +57,17 @@ pub enum Amino {
     W,
     Y,
     Stop,
+}
+
+pub fn find_stop_codon_intervals(sequence: &[u8]) -> Vec<usize> {
+    let mut stop_codon_intervals = Vec::new();
+    for reading_frame in 0..3 {
+        for stop_codon in STOP_CODONS.iter() {
+
+        }
+    }
+
+    stop_codon_intervals
 }
 
 pub fn translate_sequence(sequence: &[u8]) -> Vec<Amino> {
@@ -94,6 +111,11 @@ mod tests {
     #[test]
     fn test_confirm_is_sorted() {
         assert!(CODON_MAPPING.is_sorted());
+    }
+
+    #[test]
+    fn sizeof_aminoacid_enum() {
+        assert_eq!(std::mem::size_of::<Amino>(), 1);
     }
 
     #[test]
