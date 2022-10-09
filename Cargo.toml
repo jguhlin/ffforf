@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 jetscii = "0.5.3"
+pulp = "0.2.2"

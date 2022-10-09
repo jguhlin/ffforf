@@ -1,5 +1,16 @@
 #![feature(is_sorted)]
 
+#[macro_use]
+extern crate jetscii;
+
+///! ORF finding
+/// 
+/// Algorithm:
+///     Given a sequence, find stop codons (use jetscii)
+///     Calculate distance between stop codons
+///     If greater than MIN_ORF_LENGTH, translate intervening sequence
+
+
 const CODON_MAPPING: [&[u8; 3]; 64] =  [
     // Make it sorted so we can use binary search
     b"AAA", b"AAC", b"AAG", b"AAT", b"ACA", b"ACC", b"ACG", b"ACT", b"AGA", b"AGC", b"AGG", b"AGT", b"ATA", b"ATC", b"ATG", b"ATT",
