@@ -13,12 +13,16 @@ exclude = [
 	"*.profdata",
 ]
 
+[[bin]]
+name = "ffforf"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 jetscii = "0.5.3"
 pulp = "0.2.2"
 lazy_static = "1.4.0"
+fffx = { path = "../fffx" }
 
 [dev-dependencies]
 criterion = "0.4.0"

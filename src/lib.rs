@@ -30,7 +30,6 @@ pub fn find_stop_codons(sequence: &[u8]) -> Vec<usize> {
     for stop_codon in STOP_CODONS.as_slice().iter() {
         let mut offset = 0;
         while let Some(pos) = stop_codon.find(&sequence[offset..]) {
-            println!("Pos: {}", pos + offset);
             found_stop_codons.push(pos + offset);
             offset += pos + 3;
         }
@@ -90,11 +89,13 @@ pub fn translate_sequence(sequence: &[u8]) -> Vec<Amino> {
     let mut result = Vec::new();
 
     for codon in sequence.chunks_exact(3) {
-        //let codon: &[u8] = &sequence[i..i + 3];
-        println!("Codon: {:?}", std::str::from_utf8(codon).unwrap());
-        let amino = AMINO_MAPPING[CODON_MAPPING
-            .binary_search_by(|&c| c.as_slice().cmp(codon))
-            .unwrap()];
+        let codon_id = match CODON_MAPPING
+        .binary_search_by(|&c| c.as_slice().cmp(codon)) {
+            Ok(codon_id) => codon_id,
+            Err(_) => 64,
+        };
+        
+        let amino = AMINO_MAPPING[codon_id];
         let amino = match amino {
             b'A' => Amino::A,
             b'C' => Amino::C,
@@ -117,6 +118,7 @@ pub fn translate_sequence(sequence: &[u8]) -> Vec<Amino> {
             b'W' => Amino::W,
             b'Y' => Amino::Y,
             b'*' => Amino::Stop,
+            b'X' => Amino::Unknown,
             _ => unreachable!(),
         };
         result.push(amino);

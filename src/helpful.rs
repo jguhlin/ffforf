@@ -9,12 +9,13 @@ pub const CODON_MAPPING: [&[u8; 3]; 64] = [
 ];
 
 // Map from codon to amino acid
-pub const AMINO_MAPPING: [u8; 64] = [
+pub const AMINO_MAPPING: [u8; 65] = [
     // Mapping for a sorted codon array
     b'K', b'N', b'K', b'N', b'T', b'T', b'T', b'T', b'R', b'S', b'R', b'S', b'I', b'I', b'M', b'I',
     b'Q', b'H', b'Q', b'H', b'P', b'P', b'P', b'P', b'R', b'R', b'R', b'R', b'L', b'L', b'L', b'L',
     b'E', b'D', b'E', b'D', b'A', b'A', b'A', b'A', b'G', b'G', b'G', b'G', b'V', b'V', b'V', b'V',
     b'*', b'Y', b'*', b'Y', b'S', b'S', b'S', b'S', b'*', b'C', b'W', b'C', b'L', b'F', b'L', b'F',
+    b'X',
 ];
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -40,4 +41,5 @@ pub enum Amino {
     W,
     Y,
     Stop,
+    Unknown,
 }
