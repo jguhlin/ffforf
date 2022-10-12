@@ -2,6 +2,19 @@
 name = "ffforf"
 version = "0.1.0"
 edition = "2021"
+authors = ["Joseph Guhlin <joseph.guhlin@gmail.com>"]
+license = "MIT OR Apache-2.0"
+description = "Another fasta/q/x file format parser. Well fuzzed."
+repository = "https://github.com/jguhlin/fffx"
+categories = ["science"]
+keywords = ["bioinformatics"]
+exclude = [
+	"test_data/*.fasta",
+	"*.profdata",
+]
+
+[[bin]]
+name = "ffforf"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -9,3 +22,12 @@ edition = "2021"
 jetscii = "0.5.3"
 pulp = "0.2.2"
 lazy_static = "1.4.0"
+fffx = { path = "../fffx" }
+
+[dev-dependencies]
+criterion = "0.4.0"
+humansize = "2.0.0"
+
+[[bench]]
+name = "revcomp" 
+harness = false

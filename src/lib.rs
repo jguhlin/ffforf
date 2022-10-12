@@ -1,80 +1,101 @@
 #![feature(is_sorted)]
 ///! ORF finding
-/// 
+///
 /// Algorithm:
 ///     Given a sequence, find stop codons (use jetscii)
 ///     Calculate distance between stop codons
 ///     If greater than MIN_ORF_LENGTH, translate intervening sequence
-
 use lazy_static::lazy_static;
 
-use jetscii::{SubstringConst, Substring};
+lazy_static! {
+    static ref STOP_CODONS: [ByteSubstringConst; 3] = [
+        ByteSubstring::new(b"TAG"),
+        ByteSubstring::new(b"TAA"),
+        ByteSubstring::new(b"TGA")
+    ];
+}
+
+pub mod helpful;
+pub use helpful::*;
+
+use jetscii::{ByteSubstring, ByteSubstringConst};
 use pulp::Arch;
 
+pub fn find_stop_codons(sequence: &[u8]) -> Vec<usize> {
+    let mut sequence = sequence.to_vec();
+    sequence.make_ascii_uppercase();
 
-lazy_static! {
-    static ref STOP_CODONS: [SubstringConst; 3] = [Substring::new("TAG"), Substring::new("TAA"), Substring::new("TGA")];
-}
+    let mut found_stop_codons = Vec::new();
 
-const CODON_MAPPING: [&[u8; 3]; 64] =  [
-    // Make it sorted so we can use binary search
-    b"AAA", b"AAC", b"AAG", b"AAT", b"ACA", b"ACC", b"ACG", b"ACT", b"AGA", b"AGC", b"AGG", b"AGT", b"ATA", b"ATC", b"ATG", b"ATT",
-    b"CAA", b"CAC", b"CAG", b"CAT", b"CCA", b"CCC", b"CCG", b"CCT", b"CGA", b"CGC", b"CGG", b"CGT", b"CTA", b"CTC", b"CTG", b"CTT",
-    b"GAA", b"GAC", b"GAG", b"GAT", b"GCA", b"GCC", b"GCG", b"GCT", b"GGA", b"GGC", b"GGG", b"GGT", b"GTA", b"GTC", b"GTG", b"GTT",
-    b"TAA", b"TAC", b"TAG", b"TAT", b"TCA", b"TCC", b"TCG", b"TCT", b"TGA", b"TGC", b"TGG", b"TGT", b"TTA", b"TTC", b"TTG", b"TTT",
-];
+    for stop_codon in STOP_CODONS.as_slice().iter() {
+        let mut offset = 0;
+        while let Some(pos) = stop_codon.find(&sequence[offset..]) {
+            found_stop_codons.push(pos + offset);
+            offset += pos + 3;
+        }
 
-// Map from codon to amino acid
-const AMINO_MAPPING: [u8; 64] = [
-    // Mapping for a sorted codon array
-
-    b'K', b'N', b'K', b'N', b'T', b'T', b'T', b'T', b'R', b'S', b'R', b'S', b'I', b'I', b'M', b'I',
-    b'Q', b'H', b'Q', b'H', b'P', b'P', b'P', b'P', b'R', b'R', b'R', b'R', b'L', b'L', b'L', b'L',
-    b'E', b'D', b'E', b'D', b'A', b'A', b'A', b'A', b'G', b'G', b'G', b'G', b'V', b'V', b'V', b'V',
-    b'*', b'Y', b'*', b'Y', b'S', b'S', b'S', b'S', b'*', b'C', b'W', b'C', b'L', b'F', b'L', b'F',
-];
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum Amino {
-    A,
-    C,
-    D,
-    E,
-    F,
-    G,
-    H,
-    I,
-    K,
-    L,
-    M,
-    N,
-    P,
-    Q,
-    R,
-    S,
-    T,
-    V,
-    W,
-    Y,
-    Stop,
-}
-
-pub fn find_stop_codon_intervals(sequence: &[u8]) -> Vec<usize> {
-    let mut stop_codon_intervals = Vec::new();
-    for reading_frame in 0..3 {
-        for stop_codon in STOP_CODONS.iter() {
-
+        if offset >= sequence.len() {
+            break;
         }
     }
 
-    stop_codon_intervals
+    found_stop_codons.sort_unstable();
+    found_stop_codons
+}
+
+/// Returns reading_frame, start, end
+pub fn stop_codons_to_intervals(
+    stop_codons: &[usize],
+    min_orf_length: usize,
+    sequence_length: usize,
+) -> Vec<(usize, usize, usize)> {
+    let mut intervals = Vec::new();
+    let mut reading_frames_and_stops = Vec::new();
+
+    // Start of the sequence and end of the sequence...
+    for i in 0..3 {
+        reading_frames_and_stops.push((i, 0));
+        if i == 0 {
+            let end = sequence_length - ((sequence_length - i) % 3);
+            reading_frames_and_stops.push((i, end));
+        } else {
+            let end = sequence_length - ((sequence_length - i) % 3);
+            reading_frames_and_stops.push((i, end));
+        }
+    }
+
+    for stop in stop_codons.iter() {
+        let reading_frame = stop % 3;
+        reading_frames_and_stops.push((reading_frame, stop + 3));
+    }
+
+    reading_frames_and_stops.sort_by_key(|x| (x.0, x.1));
+
+    for x in reading_frames_and_stops.windows(2) {
+        let (reading_frame, start) = x[0];
+        let (reading_frame2, end) = x[1];
+        if reading_frame == reading_frame2 {
+            let length = end - start;
+            if length >= min_orf_length {
+                intervals.push((reading_frame, start, end));
+            }
+        }
+    }
+
+    intervals
 }
 
 pub fn translate_sequence(sequence: &[u8]) -> Vec<Amino> {
     let mut result = Vec::new();
+
     for codon in sequence.chunks_exact(3) {
-        //let codon: &[u8] = &sequence[i..i + 3];
-        let amino = AMINO_MAPPING[CODON_MAPPING.binary_search_by(|&c| c.as_slice().cmp(codon)).unwrap()];
+        let codon_id = match CODON_MAPPING
+        .binary_search_by(|&c| c.as_slice().cmp(codon)) {
+            Ok(codon_id) => codon_id,
+            Err(_) => 64,
+        };
+        
+        let amino = AMINO_MAPPING[codon_id];
         let amino = match amino {
             b'A' => Amino::A,
             b'C' => Amino::C,
@@ -97,11 +118,40 @@ pub fn translate_sequence(sequence: &[u8]) -> Vec<Amino> {
             b'W' => Amino::W,
             b'Y' => Amino::Y,
             b'*' => Amino::Stop,
+            b'X' => Amino::Unknown,
             _ => unreachable!(),
         };
         result.push(amino);
     }
     result
+}
+
+pub fn complement(c: &mut u8) {
+    if *c != b'N' {
+        if *c & 2 != 0 {
+            *c ^= 4;
+        } else {
+            *c ^= 21;
+        }
+    }
+}
+
+pub fn revcomp(sequence: &mut [u8]) {
+    let arch = Arch::new();
+    arch.dispatch(|| {
+        sequence.reverse();
+        sequence.make_ascii_uppercase();
+        sequence.iter_mut().for_each(complement);
+    });
+}
+
+pub fn translate_interval(
+    sequence: &[u8],
+    (_, start, stop): &(usize, usize, usize)
+) -> Vec<Amino> {
+    let seq_to_translate = &sequence[*start..*stop];
+    let mut translated = translate_sequence(seq_to_translate);
+    translated
 }
 
 #[cfg(test)]
@@ -131,7 +181,60 @@ mod tests {
         // Test a sequence that is not an ORF
         let sequence = b"ATGCGATACGCTTATGCGATACGCTT";
         let result = translate_sequence(sequence);
-        assert_eq!(result, vec![Amino::M, Amino::R, Amino::Y, Amino::A, Amino::Y, Amino::A, Amino::I, Amino::R]);
+        assert_eq!(
+            result,
+            vec![
+                Amino::M,
+                Amino::R,
+                Amino::Y,
+                Amino::A,
+                Amino::Y,
+                Amino::A,
+                Amino::I,
+                Amino::R
+            ]
+        );
+    }
+
+    #[test]
+    fn test_find_stops() {
+        let sequence = b"ccaaattgaaagtgagtgtctaatgtattaattagtgaaataatatcttgatatttctttaagggagaattctgataaaagcgtaccgtccccggcTCCTGTGAACTCCCTCCCCCCTTTTACCGCTTGATTGTACTAGAGTCGGTTTGTAGTCATCTTCCAGTTCTAAGCGTGTCACTCATGTGAAGTTAGTAGTTTCGTTTGTAGATCTGGCTAACTAAGGtgattaagttttatataattttttttaagttttgctaaaaatcattttagaagatattttttaaaaatttatgttcttttatgtggtcctttctcaaaatatattgtactgtatatttattataataaagtaccgtatttagttattaaaaatcagCTTGATCGTGTAATAAaaacacaggaaaaaaataaaatttatacaacaaattgtgaaatattaatattacaatgataaaaaataaagttatgaattaaaaatagccTAGGGCCTAGGCTATTAGAAATTGACTTACACATTTGATAACGTGACTCACTATAATGatagattttaatgtattataaaataatttggcaaCCAAAGTACGATTTTATCCATGTTTATGCATACCGCGTCTGACTATAAATCGTTGCATGTGTGGAGTACGTTTTCTTTGATCAGGTCTGTCAAACTTCATCGACAATTTAGCTTTAGACCGGTCTTCAGATAAATTGTTGCATTATGTGGGGGCGTAAGAGAACAGTAAGAACTCAATAATctaatagcctaatttttatttttggacatTTCAAAGCACTCTAAGAGAAAAGTGACACTCAATTAGCTGTAGGATATATGAGTACTGATATAGTTTTTTATGACCCTGttttagactttgaaattttctttcattgtcatTATTTACGGGATTTGTACAAACTGTGCTGGTGCAAGGCTATTTCAGTAACGAGTGTGTCTGATTTATGGCCCAGGAAATTTAAGACTATCTCAATTCTGAATTGAATGGGTTAACAAAGGCAGCAGTTATAAcctgaaataaacaattttaaaataacacaaatgctgtccaaaatattttttaattttataaaatgttatttagccTAATACCAGTAGTAGGTGACCCTAGTACAGCCATCAGTAGCCTATGATTCAGCAATATGATAAGATACAACAAATGTTTAATTGTATTCAAACTAAATATGTAAAaccttgaacattttttttgtcatatacaataaatactattAACAAAATACATTCCTCCGTGCCCCCTCCTCTCCCCTGGAATTAATAATTGctgattttgatttaaattaattttctgatttaagtcatatctttaattataattttgggtCAAATTATCTCACAAACCATgcataatcatattaaaaaaaatgcgctgtatttgtacttttaaaaaaaaatcactactcGTGAGAATCATGAGCAAAATATTCTAAAGTGGAAACGGCACTAAGGTGAACTAAGCAACTTAGTGCAAAActaaatgttagaaaaaatatCCTACACTGCATAAACTATTTTGcaccataaaaaaaagttatgtgtgGGTCTAAAATAATTTGCTGAGCAATTAATGATTTCTAAATGATGCTAAAGTGAACCATTGTAatgttatatgaaaaataaatacacaattaagATCAACACAGTGAAATAACATTGATTGGGTGATTTCAAATGGGGTCTATctgaataatgttttatttaacagtaatttttatttctatcaatttttagtaatatctacaaatattttgttttaggcTGCCAGAAGATCGGCGGTGCAAGGTCAGAGGTGAGATGTTAGGTGGTTCCACCAACTGCACGGAAGAGCTGCCCTCTGTCATTCAAAATTTGACAGGTACAAACAGactatattaaataagaaaaacaaactttttaaaggCTTGACCATTAGTGAATAGGTTATATGCTTATTATTTCCATTTAGCTTTTTGAGACTAGTATGATTAGACAAATCTGCTTAGttcattttcatataatattgaGGAACAAAATTTGTGAGATTTTGCTAAAATAACTTGCTTTGCTTGTTTATAGAGGCacagtaaatcttttttattattattataattttagattttttaatttttaaataagtgataGCATAtgctgtattattaaaaatttaagaactttaaagtatttacagtagcctatattatgtaaTAGGCTAGCCTACTTTATTGTTCGGccaattctttttcttattcatCTTATCATTATTagcagattattatttattactagtttaaaagcacgtcaaaaatgacggacattaatttcttcctccttaggttgctatacttaaatgccggtcaaaaatttaaaagcccgtcaaaaataacagacagcgacatctatggacagaaaatagagagaaacaTCTTCGGGCaacatcggctcgccgaagatggccgagcagtatgacagacatcatgaccaaactttctctttattatagttagattagatagaagattagaagactagtttaaaagcccatca";
+        let result = find_stop_codons(sequence);
+
+        let results = stop_codons_to_intervals(&result, 1, sequence.len());
+        assert!(results.contains(&(0, 0, 9)));
+        assert!(results.contains(&(0, 78, 186)));
+        assert!(results.contains(&(0, 2550, 2559)));
+        assert!(results.contains(&(1, 547, 619)));
+        assert!(results.contains(&(1, 2545, 2560)));
+        assert!(results.contains(&(2, 2537, 2558)));
+    }
+
+    #[test]
+    fn test_revcomp() {
+        let mut sequence = b"ACGTCACTACGATCGATCAGACTNTNNATCGATCATCA".to_vec();
+        let rev = b"TGATGATCGATNNANAGTCTGATCGATCGTAGTGACGT";
+        revcomp(sequence.as_mut_slice());
+        assert_eq!(sequence, rev);
+    }
+
+    #[test]
+    fn test_translate_interval() {
+        let sequence = b"ccaaattgaaagtgagtgtctaatgtattaattagtgaaataatatcttgatatttctttaagggagaattctgataaaagcgtaccgtccccggcTCCTGTGAACTCCCTCCCCCCTTTTACCGCTTGATTGTACTAGAGTCGGTTTGTAGTCATCTTCCAGTTCTAAGCGTGTCACTCATGTGAAGTTAGTAGTTTCGTTTGTAGATCTGGCTAACTAAGGtgattaagttttatataattttttttaagttttgctaaaaatcattttagaagatattttttaaaaatttatgttcttttatgtggtcctttctcaaaatatattgtactgtatatttattataataaagtaccgtatttagttattaaaaatcagCTTGATCGTGTAATAAaaacacaggaaaaaaataaaatttatacaacaaattgtgaaatattaatattacaatgataaaaaataaagttatgaattaaaaatagccTAGGGCCTAGGCTATTAGAAATTGACTTACACATTTGATAACGTGACTCACTATAATGatagattttaatgtattataaaataatttggcaaCCAAAGTACGATTTTATCCATGTTTATGCATACCGCGTCTGACTATAAATCGTTGCATGTGTGGAGTACGTTTTCTTTGATCAGGTCTGTCAAACTTCATCGACAATTTAGCTTTAGACCGGTCTTCAGATAAATTGTTGCATTATGTGGGGGCGTAAGAGAACAGTAAGAACTCAATAATctaatagcctaatttttatttttggacatTTCAAAGCACTCTAAGAGAAAAGTGACACTCAATTAGCTGTAGGATATATGAGTACTGATATAGTTTTTTATGACCCTGttttagactttgaaattttctttcattgtcatTATTTACGGGATTTGTACAAACTGTGCTGGTGCAAGGCTATTTCAGTAACGAGTGTGTCTGATTTATGGCCCAGGAAATTTAAGACTATCTCAATTCTGAATTGAATGGGTTAACAAAGGCAGCAGTTATAAcctgaaataaacaattttaaaataacacaaatgctgtccaaaatattttttaattttataaaatgttatttagccTAATACCAGTAGTAGGTGACCCTAGTACAGCCATCAGTAGCCTATGATTCAGCAATATGATAAGATACAACAAATGTTTAATTGTATTCAAACTAAATATGTAAAaccttgaacattttttttgtcatatacaataaatactattAACAAAATACATTCCTCCGTGCCCCCTCCTCTCCCCTGGAATTAATAATTGctgattttgatttaaattaattttctgatttaagtcatatctttaattataattttgggtCAAATTATCTCACAAACCATgcataatcatattaaaaaaaatgcgctgtatttgtacttttaaaaaaaaatcactactcGTGAGAATCATGAGCAAAATATTCTAAAGTGGAAACGGCACTAAGGTGAACTAAGCAACTTAGTGCAAAActaaatgttagaaaaaatatCCTACACTGCATAAACTATTTTGcaccataaaaaaaagttatgtgtgGGTCTAAAATAATTTGCTGAGCAATTAATGATTTCTAAATGATGCTAAAGTGAACCATTGTAatgttatatgaaaaataaatacacaattaagATCAACACAGTGAAATAACATTGATTGGGTGATTTCAAATGGGGTCTATctgaataatgttttatttaacagtaatttttatttctatcaatttttagtaatatctacaaatattttgttttaggcTGCCAGAAGATCGGCGGTGCAAGGTCAGAGGTGAGATGTTAGGTGGTTCCACCAACTGCACGGAAGAGCTGCCCTCTGTCATTCAAAATTTGACAGGTACAAACAGactatattaaataagaaaaacaaactttttaaaggCTTGACCATTAGTGAATAGGTTATATGCTTATTATTTCCATTTAGCTTTTTGAGACTAGTATGATTAGACAAATCTGCTTAGttcattttcatataatattgaGGAACAAAATTTGTGAGATTTTGCTAAAATAACTTGCTTTGCTTGTTTATAGAGGCacagtaaatcttttttattattattataattttagattttttaatttttaaataagtgataGCATAtgctgtattattaaaaatttaagaactttaaagtatttacagtagcctatattatgtaaTAGGCTAGCCTACTTTATTGTTCGGccaattctttttcttattcatCTTATCATTATTagcagattattatttattactagtttaaaagcacgtcaaaaatgacggacattaatttcttcctccttaggttgctatacttaaatgccggtcaaaaatttaaaagcccgtcaaaaataacagacagcgacatctatggacagaaaatagagagaaacaTCTTCGGGCaacatcggctcgccgaagatggccgagcagtatgacagacatcatgaccaaactttctctttattatagttagattagatagaagattagaagactagtttaaaagcccatca";
+        let mut sequence = sequence.to_vec();
+        sequence.make_ascii_uppercase();
+        let translated = translate_interval(&sequence, &(2, 2537, 2558));
+        assert_eq!(translated, vec![
+            Amino::K,
+            Amino::T,
+            Amino::S,
+            Amino::L,
+            Amino::K,
+            Amino::A,
+            Amino::H,
+        ])
+
+
 
     }
 }
