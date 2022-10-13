@@ -70,7 +70,7 @@ pub fn find_stop_codons(sequence: &[u8]) -> Vec<usize> {
         let mut offset = 0;
         while let Some(pos) = stop_codon.find(&sequence[offset..]) {
             found_stop_codons.push(pos + offset);
-            offset += pos + 3;
+            offset += pos + 1;
         }
 
         if offset >= sequence.len() {
@@ -93,7 +93,7 @@ pub fn stop_codons_to_intervals(
 
     // Start of the sequence and end of the sequence...
     for i in 0..3 {
-        reading_frames_and_stops.push((i, 0));
+        reading_frames_and_stops.push((i, i));
         if i == 0 {
             let end = sequence_length - ((sequence_length - i) % 3);
             reading_frames_and_stops.push((i, end));
@@ -104,13 +104,14 @@ pub fn stop_codons_to_intervals(
     }
 
     for stop in stop_codons.iter() {
-        let reading_frame = stop % 3;
+        let reading_frame = (stop % 3);
         reading_frames_and_stops.push((reading_frame, stop + 3));
     }
 
     reading_frames_and_stops.sort_by_key(|x| (x.0, x.1));
 
     for x in reading_frames_and_stops.windows(2) {
+        // println!("Reading Frame: {} {} {}", x[0].0, x[0].1, x[1].1);
         let (reading_frame, start) = x[0];
         let (reading_frame2, end) = x[1];
         if reading_frame == reading_frame2 {
@@ -203,6 +204,15 @@ pub fn find_all_orfs(
         let (reading_frame, start, stop) = interval;
         let seq_to_translate = &sequence[start..stop];
         let translated = translate_sequence(seq_to_translate);
+
+        let stop_count = translated.iter().filter(|&&x| x == Amino::Stop).count();
+            if stop_count > 1 {
+                // println!("Sequence: {}", String::from_utf8_lossy(seq_to_translate));
+                println!("Interval {:?} Stop count: {}", interval, stop_count);
+                // println!("{} stops", stop_count);
+                
+            }
+        
         all_orfs.push(Orf {
             start,
             end: stop,

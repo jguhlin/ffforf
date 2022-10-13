@@ -19,6 +19,7 @@ pub const AMINO_MAPPING: [u8; 65] = [
 ];
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[repr(u8)]
 pub enum Amino {
     A,
     C,
