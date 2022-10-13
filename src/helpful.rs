@@ -43,3 +43,61 @@ pub enum Amino {
     Stop,
     Unknown,
 }
+
+impl From<Amino> for char {
+    fn from(a: Amino) -> Self {
+        match a {
+            Amino::A => 'A',
+            Amino::C => 'C',
+            Amino::D => 'D',
+            Amino::E => 'E',
+            Amino::F => 'F',
+            Amino::G => 'G',
+            Amino::H => 'H',
+            Amino::I => 'I',
+            Amino::K => 'K',
+            Amino::L => 'L',
+            Amino::M => 'M',
+            Amino::N => 'N',
+            Amino::P => 'P',
+            Amino::Q => 'Q',
+            Amino::R => 'R',
+            Amino::S => 'S',
+            Amino::T => 'T',
+            Amino::V => 'V',
+            Amino::W => 'W',
+            Amino::Y => 'Y',
+            Amino::Stop => '*',
+            Amino::Unknown => 'X',
+        }
+    }
+}
+
+impl From<Amino> for &str {
+    fn from(a: Amino) -> Self {
+        match a {
+            Amino::A => "A",
+            Amino::C => "C",
+            Amino::D => "D",
+            Amino::E => "E",
+            Amino::F => "F",
+            Amino::G => "G",
+            Amino::H => "H",
+            Amino::I => "I",
+            Amino::K => "K",
+            Amino::L => "L",
+            Amino::M => "M",
+            Amino::N => "N",
+            Amino::P => "P",
+            Amino::Q => "Q",
+            Amino::R => "R",
+            Amino::S => "S",
+            Amino::T => "T",
+            Amino::V => "V",
+            Amino::W => "W",
+            Amino::Y => "Y",
+            Amino::Stop => "*",
+            Amino::Unknown => "X",
+        }
+    }
+}

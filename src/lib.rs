@@ -21,6 +21,45 @@ pub use helpful::*;
 use jetscii::{ByteSubstring, ByteSubstringConst};
 use pulp::Arch;
 
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub enum Strand {
+    Forward,
+    Reverse,
+}
+
+impl From<Strand> for bool {
+    fn from(s: Strand) -> Self {
+        match s {
+            Strand::Forward => true,
+            Strand::Reverse => false,
+        }
+    }
+}
+
+impl std::fmt::Display for Strand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Strand::Forward => write!(f, "Plus"),
+            Strand::Reverse => write!(f, "Minus"),
+        }
+    }
+}
+
+impl Default for Strand {
+    fn default() -> Self {
+        Strand::Forward
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Orf {
+    pub start: usize,
+    pub end: usize,
+    pub strand: Strand,
+    pub reading_frame: usize,
+    pub translated: Vec<Amino>,
+}
+
 pub fn find_stop_codons(sequence: &[u8]) -> Vec<usize> {
     let mut sequence = sequence.to_vec();
     sequence.make_ascii_uppercase();
@@ -76,7 +115,7 @@ pub fn stop_codons_to_intervals(
         let (reading_frame2, end) = x[1];
         if reading_frame == reading_frame2 {
             let length = end - start;
-            if length >= min_orf_length {
+            if length >= min_orf_length * 3 {
                 intervals.push((reading_frame, start, end));
             }
         }
@@ -150,8 +189,48 @@ pub fn translate_interval(
     (_, start, stop): &(usize, usize, usize)
 ) -> Vec<Amino> {
     let seq_to_translate = &sequence[*start..*stop];
-    let mut translated = translate_sequence(seq_to_translate);
-    translated
+    translate_sequence(seq_to_translate)
+}
+
+pub fn find_all_orfs(
+    sequence: &[u8],
+    min_orf_length: usize,
+) -> Vec<Orf> {
+    let stop_codons = find_stop_codons(sequence);
+    let intervals = stop_codons_to_intervals(&stop_codons, min_orf_length, sequence.len());
+    let mut all_orfs = Vec::with_capacity(intervals.len());
+    for interval in intervals {
+        let (reading_frame, start, stop) = interval;
+        let seq_to_translate = &sequence[start..stop];
+        let translated = translate_sequence(seq_to_translate);
+        all_orfs.push(Orf {
+            start,
+            end: stop,
+            strand: Strand::Forward,
+            reading_frame,
+            translated,
+        });
+    }
+
+    // Do reverse complement
+    let mut revcomp_sequence = sequence.to_vec();
+    revcomp(&mut revcomp_sequence);
+    let stop_codons = find_stop_codons(&revcomp_sequence);
+    let intervals = stop_codons_to_intervals(&stop_codons, min_orf_length, sequence.len());
+    for interval in intervals {
+        let (reading_frame, start, stop) = interval;
+        let seq_to_translate = &revcomp_sequence[start..stop];
+        let translated = translate_sequence(seq_to_translate);
+        all_orfs.push(Orf {
+            start,
+            end: stop,
+            strand: Strand::Reverse,
+            reading_frame,
+            translated,
+        });
+    }
+
+    all_orfs
 }
 
 #[cfg(test)]
@@ -232,9 +311,16 @@ mod tests {
             Amino::K,
             Amino::A,
             Amino::H,
-        ])
+        ]);
 
-
-
+        let translated = translate_interval(&sequence, &(1, 2545, 2560));
+        assert_eq!(translated, vec![
+            Amino::F,
+            Amino::K,
+            Amino::S,
+            Amino::P,
+            Amino::S,
+        ]);
     }
+
 }

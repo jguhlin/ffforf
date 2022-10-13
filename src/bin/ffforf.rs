@@ -19,9 +19,6 @@ pub fn main() {
         let results = stop_codons_to_intervals(&results, 10, sequence.len());
         for result in results {
             let translated = translate_interval(sequence, &result);
-            println!("Length: {}", translated.len());
-
-
         }
     }
 }
