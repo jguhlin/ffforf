@@ -167,13 +167,17 @@ pub fn translate_sequence(sequence: &[u8]) -> Vec<Amino> {
 }
 
 pub fn complement(c: &mut u8) {
-    if *c != b'N' {
-        if *c & 2 != 0 {
-            *c ^= 4;
+    let val = *c;
+    let new_val = if val != b'N' {
+        if val & 2 != 0 {
+            val ^ 4
         } else {
-            *c ^= 21;
+            val ^ 21
         }
-    }
+    } else {
+        val
+    };
+    *c = new_val;
 }
 
 pub fn revcomp(sequence: &mut [u8]) {
