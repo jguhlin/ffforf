@@ -81,6 +81,7 @@ pub fn find_stop_codons(sequence: &[u8]) -> Vec<usize> {
     found_stop_codons
 }
 
+#[allow(clippy::if_same_then_else)]
 /// Returns reading_frame, start, end
 pub fn stop_codons_to_intervals(
     stop_codons: &[usize],
@@ -103,7 +104,7 @@ pub fn stop_codons_to_intervals(
     }
 
     for stop in stop_codons.iter() {
-        let reading_frame = (stop % 3);
+        let reading_frame = stop % 3;
         reading_frames_and_stops.push((reading_frame, stop + 3));
     }
 
@@ -128,11 +129,8 @@ pub fn translate_sequence(sequence: &[u8]) -> Vec<Amino> {
     let mut result = Vec::new();
 
     for codon in sequence.chunks_exact(3) {
-        let codon_id = match CODON_MAPPING
-        .binary_search_by(|&c| c.as_slice().cmp(codon)) {
-            Ok(codon_id) => codon_id,
-            Err(_) => 64,
-        };
+        let codon_id = CODON_MAPPING
+        .binary_search_by(|&c| c.as_slice().cmp(codon)).unwrap_or(64);
         
         let amino = AMINO_MAPPING[codon_id];
         let amino = match amino {
