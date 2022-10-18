@@ -1,4 +1,3 @@
-#![feature(is_sorted)]
 ///! ORF finding
 ///
 /// Algorithm:
@@ -250,11 +249,6 @@ pub fn find_all_orfs(
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_confirm_is_sorted() {
-        assert!(CODON_MAPPING.is_sorted());
-    }
 
     #[test]
     fn sizeof_aminoacid_enum() {

@@ -52,12 +52,42 @@ pub fn complement(c: &mut u8) {
     *c = new_val;
 }
 
+pub fn complement_alt(c: &mut u8) {
+    let val = *c;
+    if val != b'N' {
+        if val & 2 != 0 {
+            *c = val ^ 4
+        } else {
+            *c = val ^ 21
+        };
+    };
+}
+
+// This is the one used
+pub fn revcomp_xor_pulp_alt_complement(sequence: &mut [u8]) {
+    let arch = Arch::new();
+    arch.dispatch(|| {
+        sequence.reverse();
+        sequence.make_ascii_uppercase();
+        sequence.iter_mut().for_each(complement_alt);
+    });
+}
+
 // Reverse complement through bit twiddling
 pub fn revcomp_xor(sequence: &mut [u8]) {
     sequence.reverse();
     sequence.make_ascii_uppercase();
     for i in 0..sequence.len() {
         complement(&mut sequence[i]);
+    }
+}
+
+// Reverse complement through bit twiddling
+pub fn revcomp_xor_alt_complement(sequence: &mut [u8]) {
+    sequence.reverse();
+    sequence.make_ascii_uppercase();
+    for i in 0..sequence.len() {
+        complement_alt(&mut sequence[i]);
     }
 }
 
@@ -92,6 +122,31 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("RevCmp");
     group.throughput(criterion::Throughput::Bytes(sequence.len() as u64));
+
+    group.bench_function("revcomp_xor_pulp", |b| {
+        b.iter(|| {
+            revcomp_xor_pulp(black_box(&mut sequence));
+        })
+    });
+
+    group.bench_function("revcomp_xor_pulp_alt_complement", |b| {
+        b.iter(|| {
+            revcomp_xor_pulp_alt_complement(black_box(&mut sequence));
+        })
+    });
+
+    group.bench_function("revcomp_xor", |b| {
+        b.iter(|| {
+            revcomp_xor(black_box(&mut sequence));
+        })
+    });
+
+    group.bench_function("revcomp_xor_alt_complement", |b| {
+        b.iter(|| {
+            revcomp_xor(black_box(&mut sequence));
+        })
+    });
+
     group.bench_function("revcomp", |b| {
         b.iter(|| {
             revcomp(black_box(&mut sequence));
@@ -104,17 +159,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    group.bench_function("revcomp_xor", |b| {
-        b.iter(|| {
-            revcomp_xor(black_box(&mut sequence));
-        })
-    });
-
-    group.bench_function("revcomp_xor_pulp", |b| {
-        b.iter(|| {
-            revcomp_xor_pulp(black_box(&mut sequence));
-        })
-    });
+    
 
     group.finish();
 }
