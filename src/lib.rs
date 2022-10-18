@@ -336,5 +336,17 @@ mod tests {
             Amino::S,
         ]);
     }
+    
+    #[test]
+    fn test_find_all_orfs() {
+        let seq = b"ACGCCACGTTATTTCTTCTCCTTCTGGTATGTCTTTTACAGCTCGAAGGCAAAGTTCACCATTCATTTTTGATGAGTACAACTTTGTGTTAGGGTTACAGTCACGATTGACGTATGAACCAGGTCCTAACCAGAGTTTATCATTCTCTGCTTCTTCTGTAGACATGATCGAAAAATCTAAATTAGCATTTATCAAATACTCTGTTTCATCCTTATTTAATTTTATAGTGTATCCCTTCAGACAATGCAAAATAGCATTTTTAGGCCAGAATTTTGAAGCAGATATTTTGGCACCCTGGTTTACATTTTTGGAATATCTGGAAAATAATTCTTTGATTATTATGTATAAATTATTTTATTTGCATATATTATAG";
+        let result = find_all_orfs(&seq[..], 99);
+        for orf in result.iter() {
+            println!("{} {}", orf.start, orf.end);
+            println!("{}", seq[orf.start..orf.end].iter().map(|x| *x as char).collect::<String>());
+        }
+        assert!(result[0].start == 1);
+        assert!(result[0].end == 373);
+    }
 
 }
