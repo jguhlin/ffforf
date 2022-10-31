@@ -130,8 +130,9 @@ pub fn translate_sequence(sequence: &[u8]) -> Vec<Amino> {
 
     for codon in sequence.chunks_exact(3) {
         let codon_id = CODON_MAPPING
-        .binary_search_by(|&c| c.as_slice().cmp(codon)).unwrap_or(64);
-        
+            .binary_search_by(|&c| c.as_slice().cmp(codon))
+            .unwrap_or(64);
+
         let amino = AMINO_MAPPING[codon_id];
         let amino = match amino {
             b'A' => Amino::A,
@@ -186,18 +187,12 @@ pub fn revcomp(sequence: &mut [u8]) {
     });
 }
 
-pub fn translate_interval(
-    sequence: &[u8],
-    (_, start, stop): &(usize, usize, usize)
-) -> Vec<Amino> {
+pub fn translate_interval(sequence: &[u8], (_, start, stop): &(usize, usize, usize)) -> Vec<Amino> {
     let seq_to_translate = &sequence[*start..*stop];
     translate_sequence(seq_to_translate)
 }
 
-pub fn find_all_orfs(
-    sequence: &[u8],
-    min_orf_length: usize,
-) -> Vec<Orf> {
+pub fn find_all_orfs(sequence: &[u8], min_orf_length: usize) -> Vec<Orf> {
     let stop_codons = find_stop_codons(sequence);
     let intervals = stop_codons_to_intervals(&stop_codons, min_orf_length, sequence.len());
     let mut all_orfs = Vec::with_capacity(intervals.len());
@@ -207,13 +202,12 @@ pub fn find_all_orfs(
         let translated = translate_sequence(seq_to_translate);
 
         let stop_count = translated.iter().filter(|&&x| x == Amino::Stop).count();
-            if stop_count > 1 {
-                // println!("Sequence: {}", String::from_utf8_lossy(seq_to_translate));
-                println!("Interval {:?} Stop count: {}", interval, stop_count);
-                // println!("{} stops", stop_count);
-                
-            }
-        
+        if stop_count > 1 {
+            // println!("Sequence: {}", String::from_utf8_lossy(seq_to_translate));
+            println!("Interval {:?} Stop count: {}", interval, stop_count);
+            // println!("{} stops", stop_count);
+        }
+
         all_orfs.push(Orf {
             start,
             end: stop,
@@ -309,36 +303,41 @@ mod tests {
         let mut sequence = sequence.to_vec();
         sequence.make_ascii_uppercase();
         let translated = translate_interval(&sequence, &(2, 2537, 2558));
-        assert_eq!(translated, vec![
-            Amino::K,
-            Amino::T,
-            Amino::S,
-            Amino::L,
-            Amino::K,
-            Amino::A,
-            Amino::H,
-        ]);
+        assert_eq!(
+            translated,
+            vec![
+                Amino::K,
+                Amino::T,
+                Amino::S,
+                Amino::L,
+                Amino::K,
+                Amino::A,
+                Amino::H,
+            ]
+        );
 
         let translated = translate_interval(&sequence, &(1, 2545, 2560));
-        assert_eq!(translated, vec![
-            Amino::F,
-            Amino::K,
-            Amino::S,
-            Amino::P,
-            Amino::S,
-        ]);
+        assert_eq!(
+            translated,
+            vec![Amino::F, Amino::K, Amino::S, Amino::P, Amino::S,]
+        );
     }
-    
+
     #[test]
     fn test_find_all_orfs() {
         let seq = b"ACGCCACGTTATTTCTTCTCCTTCTGGTATGTCTTTTACAGCTCGAAGGCAAAGTTCACCATTCATTTTTGATGAGTACAACTTTGTGTTAGGGTTACAGTCACGATTGACGTATGAACCAGGTCCTAACCAGAGTTTATCATTCTCTGCTTCTTCTGTAGACATGATCGAAAAATCTAAATTAGCATTTATCAAATACTCTGTTTCATCCTTATTTAATTTTATAGTGTATCCCTTCAGACAATGCAAAATAGCATTTTTAGGCCAGAATTTTGAAGCAGATATTTTGGCACCCTGGTTTACATTTTTGGAATATCTGGAAAATAATTCTTTGATTATTATGTATAAATTATTTTATTTGCATATATTATAG";
         let result = find_all_orfs(&seq[..], 99);
         for orf in result.iter() {
             println!("{} {}", orf.start, orf.end);
-            println!("{}", seq[orf.start..orf.end].iter().map(|x| *x as char).collect::<String>());
+            println!(
+                "{}",
+                seq[orf.start..orf.end]
+                    .iter()
+                    .map(|x| *x as char)
+                    .collect::<String>()
+            );
         }
         assert!(result[0].start == 1);
         assert!(result[0].end == 373);
     }
-
 }

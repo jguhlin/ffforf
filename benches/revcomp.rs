@@ -159,8 +159,6 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    
-
     group.finish();
 }
 
