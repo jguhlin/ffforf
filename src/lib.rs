@@ -133,6 +133,10 @@ pub fn translate_sequence(sequence: &[u8]) -> Vec<Amino> {
             .binary_search_by(|&c| c.as_slice().cmp(codon))
             .unwrap_or(64);
 
+        if codon_id == 64 {
+            println!("Unknown Codon: {:?}", codon);
+        }
+
         let amino = AMINO_MAPPING[codon_id];
         let amino = match amino {
             b'A' => Amino::A,
@@ -203,9 +207,7 @@ pub fn find_all_orfs(sequence: &[u8], min_orf_length: usize) -> Vec<Orf> {
 
         let stop_count = translated.iter().filter(|&&x| x == Amino::Stop).count();
         if stop_count > 1 {
-            // println!("Sequence: {}", String::from_utf8_lossy(seq_to_translate));
             println!("Interval {:?} Stop count: {}", interval, stop_count);
-            // println!("{} stops", stop_count);
         }
 
         all_orfs.push(Orf {
