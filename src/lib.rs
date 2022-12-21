@@ -134,7 +134,7 @@ pub fn translate_sequence(sequence: &[u8]) -> Vec<Amino> {
             .unwrap_or(64);
 
         if codon_id == 64 {
-            println!("Unknown Codon: {:?}", codon);
+            println!("Unknown Codon: {:?}", std::str::from_utf8(codon).unwrap());
         }
 
         let amino = AMINO_MAPPING[codon_id];
