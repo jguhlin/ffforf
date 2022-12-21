@@ -133,9 +133,9 @@ pub fn translate_sequence(sequence: &[u8]) -> Vec<Amino> {
             .binary_search_by(|&c| c.as_slice().cmp(codon))
             .unwrap_or(64);
 
-        if codon_id == 64 {
-            println!("Unknown Codon: {:?}", std::str::from_utf8(codon).unwrap());
-        }
+        // if codon_id == 64 {
+            // println!("Unknown Codon: {:?}", std::str::from_utf8(codon).unwrap());
+        // }
 
         let amino = AMINO_MAPPING[codon_id];
         let amino = match amino {
@@ -191,11 +191,14 @@ pub fn revcomp(sequence: &mut [u8]) {
     });
 }
 
+/// Input is expected to be all capitalized.
 pub fn translate_interval(sequence: &[u8], (_, start, stop): &(usize, usize, usize)) -> Vec<Amino> {
     let seq_to_translate = &sequence[*start..*stop];
     translate_sequence(seq_to_translate)
 }
 
+/// Given a sequence, find all ORFs in that sequence.
+/// Input is expected to be all capitalized.
 pub fn find_all_orfs(sequence: &[u8], min_orf_length: usize) -> Vec<Orf> {
     let stop_codons = find_stop_codons(sequence);
     let intervals = stop_codons_to_intervals(&stop_codons, min_orf_length, sequence.len());
