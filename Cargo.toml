@@ -20,7 +20,7 @@ name = "ffforf"
 
 [dependencies]
 jetscii = "0.5.3"
-pulp = "0.4.0"
+pulp = "0.11.6"
 lazy_static = "1.4.0"
 fffx = "0.1.1" #{ path = "../fffx" }
 
