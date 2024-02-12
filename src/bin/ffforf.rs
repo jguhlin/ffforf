@@ -38,7 +38,7 @@ pub fn main() {
 
         // Reverse complement
 
-        let sequence = reverse_complement(sequence);
+        let sequence = revcomp(sequence);
 
         let results = find_stop_codons(sequence);
         let results = stop_codons_to_intervals(&results, 10, sequence.len());
