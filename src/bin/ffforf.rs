@@ -22,9 +22,9 @@ pub fn main() {
         for result in results {
             let translated = translate_interval(sequence, &result);
             let id = format!("{}_{}_{}_{}", id, result.0, result.1, result.2);
-            println!(">{}\n", &id);
+            println!(">{}", &id);
             let as_str: String = translated.iter().map(|x| Into::<char>::into(*x)).collect();
-            println!("{}\n", as_str);
+            println!("{}", as_str);
         }
     }
 }
