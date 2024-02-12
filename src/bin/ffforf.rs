@@ -22,6 +22,9 @@ pub fn main() {
         let results = stop_codons_to_intervals(&results, 10, sequence.len());
         for result in results {
             let translated = translate_interval(sequence, &result);
+            if translated.len() < 50 {
+                continue;                
+            }
             let id = format!("{}_{}_{}_{}", id, result.0, result.1, result.2);
             println!(">{}", &id);
             let as_str: String = translated.iter().map(|x| Into::<char>::into(*x)).collect();
