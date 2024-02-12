@@ -1,4 +1,5 @@
 // TODO: It's fast enough right now, but needletail is better.
+// TODO: Command line options
 
 use ffforf::*;
 
