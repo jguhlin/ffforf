@@ -1,5 +1,6 @@
 // TODO: It's fast enough right now, but needletail is better.
 // TODO: Command line options
+// TODO: Does this automatically handle reverse complement
 
 use ffforf::*;
 
@@ -20,6 +21,9 @@ pub fn main() {
         let sequence = seqobj.sequence.as_mut().unwrap();
         let results = find_stop_codons(sequence);
         let results = stop_codons_to_intervals(&results, 10, sequence.len());
+
+        // TODO: Reverse complement
+
         for result in results {
             let translated = translate_interval(sequence, &result);
             if translated.len() < 50 {
