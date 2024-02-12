@@ -19,17 +19,38 @@ pub fn main() {
         let id = sequence.as_ref().unwrap().id.as_ref().unwrap().clone();
         let mut seqobj = sequence.unwrap();
         let sequence = seqobj.sequence.as_mut().unwrap();
+
         let results = find_stop_codons(sequence);
         let results = stop_codons_to_intervals(&results, 10, sequence.len());
 
-        // TODO: Reverse complement
-
         for result in results {
             let translated = translate_interval(sequence, &result);
+            // Remove last entity (stop codon)
+            let translated = &translated[0..translated.len()-1];
             if translated.len() < 50 {
                 continue;                
             }
             let id = format!("{}_{}_{}_{}", id, result.0, result.1, result.2);
+            println!(">{}", &id);
+            let as_str: String = translated.iter().map(|x| Into::<char>::into(*x)).collect();
+            println!("{}", as_str);
+        }
+
+        // Reverse complement
+
+        let sequence = reverse_complement(sequence);
+
+        let results = find_stop_codons(sequence);
+        let results = stop_codons_to_intervals(&results, 10, sequence.len());
+
+        for mut result in results {
+            let translated = translate_interval(sequence, &result);
+            let translated = &translated[0..translated.len()-1];
+            if translated.len() < 50 {
+                continue;                
+            }
+
+            let id = format!("{}_rc_{}_{}_{}", id, result.0, result.1, result.2);
             println!(">{}", &id);
             let as_str: String = translated.iter().map(|x| Into::<char>::into(*x)).collect();
             println!("{}", as_str);
