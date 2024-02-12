@@ -83,6 +83,8 @@ pub fn find_stop_codons(sequence: &[u8]) -> Vec<usize> {
 
 #[allow(clippy::if_same_then_else)]
 /// Returns reading_frame, start, end
+/// 
+/// Output is: reading frame, start, end
 pub fn stop_codons_to_intervals(
     stop_codons: &[usize],
     min_orf_length: usize,
@@ -134,7 +136,7 @@ pub fn translate_sequence(sequence: &[u8]) -> Vec<Amino> {
             .unwrap_or(64);
 
         // if codon_id == 64 {
-            // println!("Unknown Codon: {:?}", std::str::from_utf8(codon).unwrap());
+        // println!("Unknown Codon: {:?}", std::str::from_utf8(codon).unwrap());
         // }
 
         let amino = AMINO_MAPPING[codon_id];
