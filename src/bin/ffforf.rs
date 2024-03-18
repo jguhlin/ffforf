@@ -1,8 +1,8 @@
-// TODO: It's fast enough right now, but needletail is better.
 // TODO: Command line options
 // TODO: Does this automatically handle reverse complement
 
 use ffforf::*;
+use needletail::{parse_fastx_file, Sequence};
 
 pub fn main() {
     // Get filename from arguments
@@ -10,27 +10,32 @@ pub fn main() {
     let filename = &args[1];
 
     // Read file
-    let file = std::fs::File::open(filename).unwrap();
-    let mut reader = std::io::BufReader::new(file);
-    let reader = fffx::fasta::Fasta::from_buffer(&mut reader);
+    let mut reader =
+        parse_fastx_file(&filename).expect("Invalid fasta/x filename or file not found");
 
     // Parse file
-    for sequence in reader {
-        let id = sequence.as_ref().unwrap().id.as_ref().unwrap().clone();
-        let mut seqobj = sequence.unwrap();
-        let sequence = seqobj.sequence.as_mut().unwrap();
+    while let Some(record) = reader.next() {
+        let record = record.expect("invalid record");
+        let id = record.id();
+        let sequence = record.seq();
 
-        let results = find_stop_codons(sequence);
+        let results = find_stop_codons(&sequence);
         let results = stop_codons_to_intervals(&results, 10, sequence.len());
 
         for result in results {
-            let translated = translate_interval(sequence, &result);
+            let translated = translate_interval(&sequence, &result);
             // Remove last entity (stop codon)
-            let translated = &translated[0..translated.len()-1];
+            let translated = &translated[0..translated.len() - 1];
             if translated.len() < 50 {
-                continue;                
+                continue;
             }
-            let id = format!("{}_{}_{}_{}", id, result.0, result.1, result.2);
+            let id = format!(
+                "{}_{}_{}_{}",
+                unsafe { std::str::from_utf8_unchecked(&id) },
+                result.0,
+                result.1,
+                result.2
+            );
             println!(">{}", &id);
             let as_str: String = translated.iter().map(|x| Into::<char>::into(*x)).collect();
             println!("{}", as_str);
@@ -38,19 +43,25 @@ pub fn main() {
 
         // Reverse complement
 
-        revcomp(sequence);
+        let rc = sequence.reverse_complement();
 
-        let results = find_stop_codons(sequence);
-        let results = stop_codons_to_intervals(&results, 10, sequence.len());
+        let results = find_stop_codons(&rc);
+        let results = stop_codons_to_intervals(&results, 10, rc.len());
 
-        for mut result in results {
-            let translated = translate_interval(sequence, &result);
-            let translated = &translated[0..translated.len()-1];
+        for result in results {
+            let translated = translate_interval(&rc, &result);
+            let translated = &translated[0..translated.len() - 1];
             if translated.len() < 50 {
-                continue;                
+                continue;
             }
 
-            let id = format!("{}_rc_{}_{}_{}", id, result.0, result.1, result.2);
+            let id = format!(
+                "{}_rc_{}_{}_{}",
+                unsafe { std::str::from_utf8_unchecked(&id) },
+                result.0,
+                result.1,
+                result.2
+            );
             println!(">{}", &id);
             let as_str: String = translated.iter().map(|x| Into::<char>::into(*x)).collect();
             println!("{}", as_str);

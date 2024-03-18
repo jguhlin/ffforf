@@ -83,7 +83,7 @@ pub fn find_stop_codons(sequence: &[u8]) -> Vec<usize> {
 
 #[allow(clippy::if_same_then_else)]
 /// Returns reading_frame, start, end
-/// 
+///
 /// Output is: reading frame, start, end
 pub fn stop_codons_to_intervals(
     stop_codons: &[usize],

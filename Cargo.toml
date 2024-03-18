@@ -1,6 +1,6 @@
 [package]
 name = "ffforf"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Joseph Guhlin <joseph.guhlin@gmail.com>"]
 license = "MIT OR Apache-2.0"
@@ -20,14 +20,10 @@ name = "ffforf"
 
 [dependencies]
 jetscii = "0.5.3"
-pulp = "0.11.6"
+pulp = "0.18.9"
 lazy_static = "1.4.0"
-fffx = "0.1.1" #{ path = "../fffx" }
+needletail = "0.5.1"
 
 [dev-dependencies]
-criterion = "0.4.0"
-humansize = "2.0.0"
-
-[[bench]]
-name = "revcomp" 
-harness = false
+criterion = "0.5.1"
+humansize = "2.1.3"
