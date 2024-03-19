@@ -22,7 +22,7 @@ name = "ffforf"
 jetscii = "0.5.3"
 pulp = "0.18.9"
 lazy_static = "1.4.0"
-needletail = "0.5.1"
+needletail = {version = "0.5.1", default_features = false}
 
 [dev-dependencies]
 criterion = "0.5.1"
